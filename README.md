@@ -4,3 +4,6 @@
 # 業務経歴
 - [業務経歴](https://github.com/peridotan)
 
+# Qiita
+- [Qiita](https://qiita.com/peridotan)
+
