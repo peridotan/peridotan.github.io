@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>定年カウントダウン</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; margin: 24px; }
+    .card { max-width: 760px; padding: 20px; border: 1px solid #ddd; border-radius: 12px; }
+    .big { font-size: 34px; font-weight: 900; margin: 10px 0 6px; }
+    .sub { color:#555; font-size: 18px; margin-bottom: 8px; }
+    .muted { color:#777; font-size: 13px; margin-top: 6px; }
+    .actions { display:flex; gap:10px; margin-top:16px; flex-wrap: wrap; }
+    a.button {
+      display:inline-block; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid #ccc; background: #fff; color: #000; text-decoration: none;
+    }
+    .warn { background:#fff3cd; border:1px solid #ffeeba; padding: 12px; border-radius: 12px; margin-top: 12px; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>定年カウントダウン</h1>
+
+    <div class="big" id="headline">読み込み中...</div>
+    <div class="sub" id="detail"></div>
+    <div class="muted" id="goal"></div>
+    <div class="muted" id="meta"></div>
+    <div class="muted" id="memo"></div>
+
+    <div class="actions">
+      <a class="button" href="index.html">設定ページへ戻る</a>
+    </div>
+
+    <div id="warnBox" class="warn" style="display:none;">
+      設定が見つかりませんでした。<a href="index.html">設定ページ</a>で入力してください。
+    </div>
+  </div>
+
+<script>
+  const headline = document.getElementById("headline");
+  const detail = document.getElementById("detail");
+  const goal = document.getElementById("goal");
+  const meta = document.getElementById("meta");
+  const memo = document.getElementById("memo");
+  const warnBox = document.getElementById("warnBox");
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtDateTime(d){
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+
+  // 年/月/日（暦ベース）差分
+  function diffYMD(from, to) {
+    if (to <= from) return { years: 0, months: 0, days: 0 };
+
+    let years = to.getFullYear() - from.getFullYear();
+    let months = to.getMonth() - from.getMonth();
+    let days = to.getDate() - from.getDate();
+
+    if (days < 0) {
+      const prevMonthEnd = new Date(to.getFullYear(), to.getMonth(), 0).getDate();
+      days += prevMonthEnd;
+      months--;
+    }
+    if (months < 0) {
+      months += 12;
+      years--;
+    }
+    return { years, months, days };
+  }
+
+  function loadSettings() {
+    try {
+      return JSON.parse(localStorage.getItem("retireCountdownV3") || "{}");
+    } catch (_) {
+      return {};
+    }
+  }
+
+  const settings = loadSettings();
+
+  function showMissing() {
+    warnBox.style.display = "";
+    headline.textContent = "設定が必要です";
+    detail.textContent = "";
+    goal.textContent = "";
+    meta.textContent = "";
+    memo.textContent = "";
+  }
+
+  if (!settings || !settings.goalISO) {
+    showMissing();
+  } else {
+    const d = new Date(settings.goalISO);
+    if (isNaN(d.getTime())) showMissing();
+  }
+
+  function update() {
+    if (!settings || !settings.goalISO) return;
+
+    const goalDate = new Date(settings.goalISO);
+    const now = new Date();
+
+    goal.textContent = `ゴール：${fmtDateTime(goalDate)}`;
+
+    const modeText = settings.goalMode === "date" ? "直接入力" : "定年年齢ルール";
+    const ageText = (typeof settings.retireAge === "number") ? `${settings.retireAge}歳` : "-";
+    const ruleText = settings.goalMode === "ruleAge" ? `（${settings.rule}）` : "";
+    meta.textContent = `モード：${modeText}${ruleText} / 定年年齢：${ageText} / 生年月日：${settings.birth || "-"}`;
+
+    memo.textContent = settings.memo ? `メモ：${settings.memo}` : "";
+
+    const diffMs = goalDate - now;
+    if (diffMs <= 0) {
+      headline.textContent = "お疲れさまでした！🎉";
+      detail.textContent = "ゴール日を過ぎています";
+      return;
+    }
+
+    const ymd = diffYMD(now, goalDate);
+
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    headline.textContent = `残り ${ymd.years}年 ${ymd.months}か月 ${ymd.days}日`;
+    detail.textContent = `${hours}時間 ${minutes}分 ${seconds}秒`;
+  }
+
+  update();
+  setInterval(update, 1000);
+</script>
+</body>
+</html>

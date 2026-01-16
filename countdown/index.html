@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>定年カウントダウン設定</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif; margin: 24px; }
+    .card { max-width: 760px; padding: 20px; border: 1px solid #ddd; border-radius: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    label { display:block; font-size: 14px; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; }
+    .muted { color:#777; font-size: 13px; margin-top: 6px; }
+    .actions { display:flex; gap:10px; margin-top:16px; flex-wrap: wrap; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .hint { background:#f7f7f7; border-radius: 12px; padding: 12px; margin-top: 12px; }
+    .title { font-size: 20px; font-weight: 800; margin: 0 0 12px; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="title">定年カウントダウン設定</div>
+
+    <div class="row">
+      <div>
+        <label>生年月日</label>
+        <input id="birth" type="date" />
+        <div class="muted">例：1968-01-14</div>
+      </div>
+
+      <div>
+        <label>ゴールの指定方法</label>
+        <select id="goalMode">
+          <option value="ruleAge">定年年齢ルールから自動計算</option>
+          <option value="date">ゴール日を直接入力</option>
+        </select>
+        <div class="muted">会社ルールが特殊なら「直接入力」がおすすめ</div>
+      </div>
+    </div>
+
+    <div class="row" id="ruleRow">
+      <div>
+        <label>定年年齢（年）</label>
+        <input id="retireAge" type="number" min="40" max="80" step="1" value="60" />
+        <div class="muted">例：60 / 65（あとで変更OK）</div>
+      </div>
+
+      <div>
+        <label>到達日の扱い（ルール）</label>
+        <select id="rule">
+          <option value="birthday">到達日の当日（00:00）</option>
+          <option value="endOfMonth">到達月の末日（23:59:59）</option>
+        </select>
+        <div class="muted">会社ルールに近い方を選択</div>
+      </div>
+    </div>
+
+    <div class="row" id="previewRow">
+      <div>
+        <label>プレビュー（計算されるゴール）</label>
+        <input id="goalPreview" type="text" readonly />
+        <div class="muted">自動計算したゴール日時</div>
+      </div>
+      <div>
+        <label>（任意）メモ</label>
+        <input id="memo" type="text" placeholder="例：65歳まで再雇用" />
+        <div class="muted">表示ページに出したければ使える</div>
+      </div>
+    </div>
+
+    <div class="row" id="dateRow" style="display:none;">
+      <div>
+        <label>ゴール日（必須）</label>
+        <input id="goalDate" type="date" />
+        <div class="muted">例：2028-03-31</div>
+      </div>
+      <div>
+        <label>ゴール時刻</label>
+        <input id="goalTime" type="time" value="00:00" />
+        <div class="muted">例：23:59（未入力なら00:00）</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="saveGo">保存して表示ページへ</button>
+      <button id="goOnly">表示ページへ（保存済みを使う）</button>
+      <button id="reset">リセット</button>
+    </div>
+
+    <div class="hint">
+      <div class="muted">
+        使い方：<br/>
+        1) 生年月日を入力<br/>
+        2) 「定年年齢ルール」 or 「ゴール日直接入力」を選択<br/>
+        3) 「保存して表示ページへ」を押す
+      </div>
+    </div>
+  </div>
+
+<script>
+  const birthEl = document.getElementById("birth");
+  const goalModeEl = document.getElementById("goalMode");
+  const retireAgeEl = document.getElementById("retireAge");
+  const ruleEl = document.getElementById("rule");
+  const goalPreviewEl = document.getElementById("goalPreview");
+  const memoEl = document.getElementById("memo");
+
+  const ruleRow = document.getElementById("ruleRow");
+  const previewRow = document.getElementById("previewRow");
+  const dateRow = document.getElementById("dateRow");
+
+  const goalDateEl = document.getElementById("goalDate");
+  const goalTimeEl = document.getElementById("goalTime");
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function fmtDateTime(d){
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+
+  function endOfMonth(date) {
+    const d = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    d.setHours(23,59,59,999);
+    return d;
+  }
+
+  function getGoalDateFromRule(birth, retireAge, rule) {
+    const goal = new Date(birth);
+    goal.setFullYear(goal.getFullYear() + retireAge);
+
+    if (rule === "birthday") {
+      goal.setHours(0,0,0,0);
+      return goal;
+    }
+    if (rule === "endOfMonth") {
+      return endOfMonth(goal);
+    }
+    goal.setHours(0,0,0,0);
+    return goal;
+  }
+
+  function parseGoalDateTime(dateStr, timeStr) {
+    if (!dateStr) return null;
+    const t = timeStr || "00:00";
+    return new Date(`${dateStr}T${t}:00`);
+  }
+
+  function updateModeUI() {
+    const mode = goalModeEl.value;
+    if (mode === "ruleAge") {
+      ruleRow.style.display = "";
+      previewRow.style.display = "";
+      dateRow.style.display = "none";
+      updatePreview();
+    } else {
+      ruleRow.style.display = "none";
+      previewRow.style.display = "none";
+      dateRow.style.display = "";
+      goalPreviewEl.value = "";
+    }
+  }
+
+  function getRetireAgeSafe() {
+    const n = Number(retireAgeEl.value);
+    if (!Number.isFinite(n)) return 60;
+    const clipped = Math.max(40, Math.min(80, Math.floor(n)));
+    return clipped;
+  }
+
+  function updatePreview() {
+    const birthStr = birthEl.value;
+    if (!birthStr) {
+      goalPreviewEl.value = "生年月日を入力してください";
+      return;
+    }
+    const birth = new Date(birthStr + "T00:00:00");
+    const retireAge = getRetireAgeSafe();
+    const goal = getGoalDateFromRule(birth, retireAge, ruleEl.value);
+    goalPreviewEl.value = fmtDateTime(goal);
+  }
+
+  function saveSettings() {
+    const birthStr = birthEl.value;
+    if (!birthStr) {
+      alert("生年月日を入力してください");
+      return false;
+    }
+
+    const mode = goalModeEl.value;
+    let goalISO = "";
+    let rule = ruleEl.value;
+    let retireAge = getRetireAgeSafe();
+
+    if (mode === "ruleAge") {
+      const birth = new Date(birthStr + "T00:00:00");
+      const goal = getGoalDateFromRule(birth, retireAge, rule);
+      goalISO = goal.toISOString();
+    } else {
+      const goal = parseGoalDateTime(goalDateEl.value, goalTimeEl.value);
+      if (!goal || isNaN(goal.getTime())) {
+        alert("ゴール日（と時刻）を正しく入力してください");
+        return false;
+      }
+      goalISO = goal.toISOString();
+      rule = "";
+      retireAge = null;
+    }
+
+    localStorage.setItem("retireCountdownV3", JSON.stringify({
+      birth: birthStr,
+      goalMode: mode,
+      retireAge: retireAge,   // ruleAgeのときだけ数値、dateのときnull
+      rule: rule,
+      memo: memoEl.value || "",
+      goalISO: goalISO
+    }));
+
+    return true;
+  }
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("retireCountdownV3") || "{}");
+      if (saved.birth) birthEl.value = saved.birth;
+      if (saved.goalMode) goalModeEl.value = saved.goalMode;
+      if (saved.rule) ruleEl.value = saved.rule;
+      if (saved.memo) memoEl.value = saved.memo;
+
+      if (typeof saved.retireAge === "number") retireAgeEl.value = String(saved.retireAge);
+
+      if (saved.goalMode === "date" && saved.goalISO) {
+        const d = new Date(saved.goalISO);
+        if (!isNaN(d.getTime())) {
+          goalDateEl.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+          goalTimeEl.value = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+      }
+    } catch (_) {}
+  }
+
+  document.getElementById("saveGo").onclick = () => {
+    if (saveSettings()) location.href = "countdown.html";
+  };
+
+  document.getElementById("goOnly").onclick = () => {
+    location.href = "countdown.html";
+  };
+
+  document.getElementById("reset").onclick = () => {
+    localStorage.removeItem("retireCountdownV3");
+    birthEl.value = "";
+    goalModeEl.value = "ruleAge";
+    retireAgeEl.value = "60";
+    ruleEl.value = "birthday";
+    memoEl.value = "";
+    goalDateEl.value = "";
+    goalTimeEl.value = "00:00";
+    updateModeUI();
+  };
+
+  birthEl.addEventListener("change", updatePreview);
+  retireAgeEl.addEventListener("input", updatePreview);
+  ruleEl.addEventListener("change", updatePreview);
+  goalModeEl.addEventListener("change", updateModeUI);
+
+  loadSettings();
+  updateModeUI();
+</script>
+</body>
+</html>
