@@ -1,4 +1,4 @@
-# アプリ（HTML）
+# 自分用アプリ
 - [定年までのカウントダウン](https://peridotan.github.io/countdown/countdown.html)
 - [健康管理](https://peridotan.github.io/health-chart/)
 
@@ -8,6 +8,7 @@
 
 # Qiita
 - [Qiita](https://qiita.com/peridotan)
+
 
 
 
