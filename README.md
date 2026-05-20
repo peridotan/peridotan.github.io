@@ -1,6 +1,6 @@
 # My Tool
 - [定年までのカウントダウン](https://peridotan.github.io/countdown/countdown.html)
-- [健康管理](https://peridotan.github.io/health-chart/) [- Repositories](https://github.com/peridotan/health-chart)
+- [健康管理](https://peridotan.github.io/health-chart/) [(Repositories)](https://github.com/peridotan/health-chart)
 - [EPSS Vendor Triage](https://github.com/peridotan/epss-vendor-triage)
 
 # My Work
