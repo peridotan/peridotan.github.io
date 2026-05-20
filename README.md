@@ -1,8 +1,9 @@
-# アプリ（自分向け）
+# My Tool
 - [定年までのカウントダウン](https://peridotan.github.io/countdown/countdown.html)
-- [健康管理](https://peridotan.github.io/health-chart/)
+- [健康管理](https://peridotan.github.io/health-chart/) [Repo](https://github.com/peridotan/health-chart)
+- [EPSS Vendor Triage](https://github.com/peridotan/epss-vendor-triage)
 
-# 作品
+# My Work
 - [レザークラフト](https://peridotan.github.io/leather-gallery/)
 
 # GitHub
