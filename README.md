@@ -5,8 +5,8 @@
 # 作品
 - [レザークラフト](https://peridotan.github.io/leather-gallery/)
 
-# 業務経歴
-- [業務経歴](https://github.com/peridotan)
+# GitHub
+- [GitHub](https://github.com/peridotan)
 
 # Qiita
 - [Qiita](https://qiita.com/peridotan)
